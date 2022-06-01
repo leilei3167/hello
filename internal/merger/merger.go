@@ -11,7 +11,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-//将下载好的分区文件的路径传入,在当前的工作目录拼接完成
+// MergeFile 将下载好的分区文件的路径传入,在当前的工作目录拼接完成
 func MergeFile(files []string, out string) error {
 	//排序,确保分区顺序
 	sort.Strings(files)

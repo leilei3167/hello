@@ -12,33 +12,27 @@ import (
 )
 
 var (
-	SaveFolder  string = ".fdlr/"
-	stateFile   string = "state.json"
-	linuxHome   string = os.Getenv("HOME")
-	windowsHome string
+	SaveFolder = ".fdlr/"
+	stateFile  = "state.yaml"
+	homePath   string
 )
 
 func init() {
 	var err error
-	windowsHome, err = homedir.Dir()
+	homePath, err = homedir.Dir() //根据不同的系统自动寻找HOME目录
 	if err != nil {
-		logrus.Fatal(err)
+		logrus.Fatal("获取HOME目录失败,请检查环境变量!", err)
 	}
 }
 
-//根据url返回一个以url末尾资源命名的绝对路径
+// GetFolderFrom 根据url返回一个以url末尾资源命名的绝对路径
 func GetFolderFrom(url string) (string, error) {
-	var homepath string
 	var path string
 	var absolutePath string
-	if runtime.GOOS == "linux" {
-		homepath = linuxHome
-	} else {
-		homepath = windowsHome
-	}
-	path = filepath.Join(homepath, SaveFolder) //path就是在home目录中创建一个.fdlr的隐藏文件,用于存放下载的分片数据
-	//Abs返回路径的绝对表达式,base将返回一段路径的最后元素
-	absolutePath, err := filepath.Abs(filepath.Join(homepath,
+
+	path = filepath.Join(homePath, SaveFolder) //path就是在home目录中创建一个.fdlr的隐藏文件,用于存放下载的分片数据
+	//Abs返回路径的绝对表达式,base将返回一段路径的最后元素(即下载文件的文件夹)
+	absolutePath, err := filepath.Abs(filepath.Join(homePath,
 		SaveFolder, filepath.Base(url)))
 	if err != nil {
 		return "", errors.WithStack(err) //只附加堆栈
@@ -58,5 +52,23 @@ func GetFolderFrom(url string) (string, error) {
 
 func IsFolderExisted(path string) bool {
 	_, err := os.Stat(path)
-	return err == nil
+	return err == nil //true就是存在
+}
+
+func CleanTrash(url string) error {
+
+	folder, err := GetFolderFrom(url) //得到绝对路径(要下载项目的)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	if IsFolderExisted(folder) {
+		//删除之前的临时文件
+		logrus.Println("任务文件已存在,执行清除...")
+		if err := os.RemoveAll(folder); err != nil {
+			return errors.WithStack(err)
+		}
+
+	}
+	return nil
 }

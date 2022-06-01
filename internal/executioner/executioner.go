@@ -28,11 +28,11 @@ func Do(url string, state *tool.State, conc int) error {
 	)
 
 	isInterrupted := false
-	files := []string{}             //各个分区的位置
-	parts := []tool.DownloadRange{} //各个部分
+	var files []string             //各个分区下载的文件绝对路径
+	var parts []tool.DownloadRange //各个部分
 
-	doneChan := make(chan bool, 1)      //用于鉴别各个分区是否下载完毕
-	fileChan := make(chan string, conc) //收集各个下载完成部分的存储路径
+	doneChan := make(chan bool, 1)      //用于鉴别所有分区是否结束工作
+	fileChan := make(chan string, conc) //收集各个下载完成部分的存储路径,最终append到files中
 	errChan := make(chan error, 1)
 	stateChan := make(chan tool.DownloadRange, 1) //收集每个分区的下载进度(中断时)
 	interruptChan := make(chan bool, conc)        //每个下载线程是否正常中断
@@ -60,7 +60,7 @@ func Do(url string, state *tool.State, conc int) error {
 		case <-signalChan:
 			isInterrupted = true
 			for conc > 0 {
-				interruptChan <- true //通知每个线程中断工作,保存状态后退出(stateChan将收到)
+				interruptChan <- true //通知每个线程中断工作,保存状态后退出(stateChan将收到),所有中断完成将激活DoneChan
 				conc--
 			}
 
@@ -70,7 +70,7 @@ func Do(url string, state *tool.State, conc int) error {
 		case err = <-errChan:
 			return errors.WithStack(err)
 
-		case partState := <-stateChan: //保存每一份的状态(如果被中断的话)
+		case partState := <-stateChan: //保存每一份的状态(只有被中断才会激活)
 			parts = append(parts, partState)
 
 		case <-doneChan: //收到donechan说明所有有协程正常退出,包括被中断或者完成下载
@@ -98,15 +98,8 @@ func Do(url string, state *tool.State, conc int) error {
 				if err != nil {
 					return errors.WithStack(err)
 				}
-
 				//合并完成之后将临时分区的文件夹删除
-				folder, err := tool.GetFolderFrom(url)
-				if err != nil {
-					return errors.WithStack(err)
-				}
-
-				err = os.RemoveAll(folder)
-				if err != nil {
+				if err := tool.CleanTrash(url); err != nil {
 					return errors.WithStack(err)
 				}
 				logrus.Printf("下载完毕,耗时:%s\n", time.Since(start))

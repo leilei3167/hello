@@ -3,11 +3,9 @@ package cmd
 import (
 	"downloader/internal/executioner"
 	"downloader/pkg/tool"
-	"github.com/sirupsen/logrus"
+	"github.com/pkg/errors"
 	"os"
 	"runtime"
-
-	"github.com/pkg/errors"
 
 	"github.com/spf13/cobra"
 )
@@ -27,7 +25,6 @@ var downloadCmd = &cobra.Command{
 
 	Args: cobra.ExactArgs(1), //只接受1个参数即url
 	Run: func(cmd *cobra.Command, args []string) {
-
 		ExitWithError(download(args))
 	},
 }
@@ -35,18 +32,8 @@ var downloadCmd = &cobra.Command{
 //先查询是否存在下载任务
 func download(arg []string) error {
 	//根据url判断当前是否已有下载文件的文件夹,已有则删除
-	folder, err := tool.GetFolderFrom(arg[0])
-	if err != nil {
+	if err := tool.CleanTrash(arg[0]); err != nil {
 		return errors.WithStack(err)
-	}
-
-	if tool.IsFolderExisted(folder) {
-		//删除之前的临时文件
-		logrus.Println("任务文件已存在,执行清除...")
-		if err := os.RemoveAll(folder); err != nil {
-			return errors.WithStack(err)
-		}
-
 	}
 
 	return executioner.Do(arg[0], nil, conc)

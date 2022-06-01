@@ -13,7 +13,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-//开启多线程下载
+// Downloading 开启多线程下载,会根据HTTPDownloader中线程数量来创建下载线程
+//参数中只有interruptChan被读取,其余全是写入;doneChan在所有线程结束工作时会写入,fileChan是在某个分区
+//被下载完毕后会写入,errChan当任一线程发生错误时写入,stateChan当且仅当收到中断信号时会将各分区下载进度保存并写入
 func (d *HTTPDownloader) Downloading(doneChan chan<- bool, fileChan chan<- string,
 	errChan chan<- error, interruptChan <-chan bool, stateSaveChan chan<- tool.DownloadRange) {
 

@@ -1,7 +1,6 @@
 package tool
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -9,13 +8,13 @@ import (
 	"github.com/pkg/errors"
 )
 
-//代表着下载的状态,URL以及下载的进度
+// State 用于将下载进度存入文件;包含各分区下载的详细情况
 type State struct {
 	URL            string
 	DownloadRanges []DownloadRange
 }
 
-//每一个部分的下载进度
+// DownloadRange 每一个部分的下载进度
 type DownloadRange struct {
 	URL     string
 	Path    string //路径,包含文件名 /home/lei/.fdlr/xxx/xxx.partx
@@ -23,7 +22,7 @@ type DownloadRange struct {
 	EndAt   int64  //这部分结束位置
 }
 
-//根据绝对路径创建文件夹
+// Mkdir 根据绝对路径创建文件夹
 func Mkdir(folder string) error {
 	//先判断目录是否存在
 	if _, err := os.Stat(folder); err != nil {
@@ -42,7 +41,7 @@ func (state *State) Save() error {
 	}
 	fmt.Printf("Saving states data in %s\n", folder)
 
-	y, err := json.Marshal(state)
+	y, err := yaml.Marshal(state)
 	if err != nil {
 		return errors.WithStack(err)
 	}
