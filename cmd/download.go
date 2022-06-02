@@ -20,7 +20,7 @@ func init() {
 var downloadCmd = &cobra.Command{
 
 	Use:     "download",
-	Short:   "download file from URL",
+	Short:   "从url中下载文件",
 	Example: os.Args[0] + " download [-c=并发线程数] URL",
 
 	Args: cobra.ExactArgs(1), //只接受1个参数即url

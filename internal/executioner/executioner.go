@@ -48,7 +48,15 @@ func Do(url string, state *tool.State, conc int) error {
 		}
 	} else {
 		//旧任务,根据state恢复一个下载器
-		return errors.New("暂不支持断点续传")
+		dlr = &downloader.HTTPDownloader{
+			URL:            state.URL,
+			File:           filepath.Base(state.URL),
+			Part:           int64(len(state.DownloadRanges)),
+			SkipTLS:        true,
+			DownloadRanges: state.DownloadRanges,
+			Resumable:      true,
+		}
+		logrus.Printf("开始恢复下载 %s...", dlr.File)
 	}
 
 	//开始下载
@@ -77,7 +85,7 @@ func Do(url string, state *tool.State, conc int) error {
 			if isInterrupted {
 				//被中断,将parts的state持久化到文件中
 				if dlr.Resumable {
-					logrus.Printf("Interrupted, saving state ... \n")
+					logrus.Printf("中断下载,保存状态... \n")
 					s := &tool.State{
 						URL:            url,
 						DownloadRanges: parts,
@@ -88,7 +96,7 @@ func Do(url string, state *tool.State, conc int) error {
 					return nil
 
 				} else {
-					logrus.Printf("Interrupted, but downloading url is not resumable, silently die\n")
+					logrus.Printf("下载中断,状态无法保存\n")
 					return nil
 				}
 

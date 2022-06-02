@@ -2,6 +2,8 @@ package tool
 
 import (
 	"fmt"
+	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v3"
 	"os"
 	"path/filepath"
 
@@ -47,4 +49,24 @@ func (state *State) Save() error {
 	}
 
 	return os.WriteFile(filepath.Join(folder, stateFile), y, 0644)
+}
+
+func Read(task string) (*State, error) {
+	file := filepath.Join(HomePath, SaveFolder, task, stateFile)
+	logrus.Printf("读取状态:%s", file)
+
+	var err error
+
+	//读取配置文件并解码
+	bytes, err := os.ReadFile(file)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	var state *State
+	if err = yaml.Unmarshal(bytes, &state); err != nil {
+		return nil, errors.WithStack(err)
+	}
+	return state, nil
+
 }
